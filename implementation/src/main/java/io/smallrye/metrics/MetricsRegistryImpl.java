@@ -78,20 +78,13 @@ public class MetricsRegistryImpl extends MetricRegistry {
             }
         }
 
-        Metadata m = new Metadata(name, type);
+        Metadata m = Metadata.builder().withName(name).withType(type).build();
         metricMap.put(name, metric);
 
         metadataMap.put(name, m);
         return metric;
     }
 
-    @Override
-    public <T extends Metric> T register(String name, T metric, Metadata metadata) throws IllegalArgumentException {
-
-        metadata.setName(name);
-
-        return register(metadata, metric);
-    }
 
     @Override
     public <T extends Metric> T register(Metadata metadata, T metric) throws IllegalArgumentException {
@@ -122,11 +115,12 @@ public class MetricsRegistryImpl extends MetricRegistry {
         }
 
         metricMap.put(name, metric);
-        metadataMap.put(name, duplicate(metadata));
+        metadataMap.put(name, metadata);
 
         return metric;
     }
 
+/*
     protected Metadata duplicate(Metadata meta) {
         Metadata copy = null;
         if (meta instanceof OriginTrackedMetadata) {
@@ -144,10 +138,11 @@ public class MetricsRegistryImpl extends MetricRegistry {
         copy.setTags(tagsCopy);
         return copy;
     }
+*/
 
     @Override
     public Counter counter(String name) {
-        return counter(new Metadata(name, MetricType.COUNTER));
+        return counter(Metadata.builder().withName(name).withType(MetricType.COUNTER).build());
     }
 
     @Override
@@ -157,7 +152,7 @@ public class MetricsRegistryImpl extends MetricRegistry {
 
     @Override
     public Histogram histogram(String name) {
-        return histogram(new Metadata(name, MetricType.HISTOGRAM));
+        return histogram(Metadata.builder().withName(name).withType(MetricType.HISTOGRAM).build());
     }
 
     @Override
@@ -167,7 +162,7 @@ public class MetricsRegistryImpl extends MetricRegistry {
 
     @Override
     public Meter meter(String s) {
-        return meter(new Metadata(s, MetricType.METERED));
+        return meter(Metadata.builder().withName(s).withType(MetricType.METERED).build());
     }
 
     @Override
@@ -243,7 +238,7 @@ public class MetricsRegistryImpl extends MetricRegistry {
 
     @Override
     public Timer timer(String s) {
-        return timer(new Metadata(s, MetricType.TIMER));
+        return timer(Metadata.builder().withName(s).withType(MetricType.TIMER).build());
     }
 
     @Override

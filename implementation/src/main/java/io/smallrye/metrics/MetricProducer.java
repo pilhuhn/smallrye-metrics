@@ -83,6 +83,7 @@ public class MetricProducer {
         Metadata metadata = new OriginTrackedMetadata(ip, metricName.of(ip), type);
         Metric metric = ip.getAnnotated().getAnnotation(Metric.class);
         if (metric != null) {
+/*
             if (!metric.unit().isEmpty()) {
                 metadata.setUnit(metric.unit());
             }
@@ -97,6 +98,7 @@ public class MetricProducer {
                     metadata.addTags(tag);
                 }
             }
+*/
         }
         return metadata;
     }

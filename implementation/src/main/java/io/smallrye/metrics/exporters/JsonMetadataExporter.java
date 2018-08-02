@@ -31,19 +31,35 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.eclipse.microprofile.metrics.spi.MetricExporter;
 
 /**
  * Created by bob on 1/22/18.
  */
-public class JsonMetadataExporter implements Exporter {
+public class JsonMetadataExporter implements MetricExporter {
 
     @Override
-    public String getContentType() {
+    public int getPriority() {
+        return 1;
+    }
+
+    @Override
+    public String getMediaType() {
         return "application/json";
     }
 
     @Override
-    public StringBuffer exportOneScope(MetricRegistry.Type scope) {
+    public HttpMethod getMethod() {
+        return HttpMethod.OPTIONS;
+    }
+
+    @Override
+    public void setRegistries(Map<MetricRegistry.Type, MetricRegistry> registryMap) {
+        // TODO: Customise this generated block
+    }
+
+    @Override
+    public String exportOneScope(MetricRegistry.Type scope) {
         MetricRegistry registry = MetricRegistries.get(scope);
         if (registry == null) {
             return null;
@@ -54,13 +70,13 @@ public class JsonMetadataExporter implements Exporter {
     }
 
     @Override
-    public StringBuffer exportAllScopes() {
+    public String exportAllScopes() {
         JsonObject obj = rootJSON();
         return stringify(obj);
     }
 
     @Override
-    public StringBuffer exportOneMetric(MetricRegistry.Type scope, String metricName) {
+    public String exportOneMetric(MetricRegistry.Type scope, String metricName) {
         MetricRegistry registry = MetricRegistries.get(scope);
         if (registry == null) {
             return null;
@@ -81,12 +97,12 @@ public class JsonMetadataExporter implements Exporter {
         put(JsonGenerator.PRETTY_PRINTING, true);
     }};
 
-    StringBuffer stringify(JsonObject obj) {
+    String stringify(JsonObject obj) {
         StringWriter out = new StringWriter();
         try (JsonWriter writer = Json.createWriterFactory(JSON_CONFIG).createWriter(out)) {
             writer.writeObject(obj);
         }
-        return out.getBuffer();
+        return out.toString();
     }
 
 
@@ -116,14 +132,14 @@ public class JsonMetadataExporter implements Exporter {
     private JsonObject metricJSON(Metadata metadata) {
         JsonObjectBuilder obj = Json.createObjectBuilder();
 
-        if (metadata.getUnit() != null) {
-            obj.add("unit", metadata.getUnit());
+        if (metadata.getUnit().isPresent()) {
+            obj.add("unit", metadata.getUnit().get());
         }
         if (metadata.getType() != null) {
             obj.add("type", metadata.getType());
         }
-        if (metadata.getDescription() != null) {
-            obj.add("description", metadata.getDescription());
+        if (metadata.getDescription().isPresent()) {
+            obj.add("description", metadata.getDescription().get());
         }
         if (metadata.getDisplayName() != null) {
             obj.add("displayName", metadata.getDisplayName());

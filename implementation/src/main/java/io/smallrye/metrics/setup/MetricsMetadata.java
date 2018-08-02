@@ -57,6 +57,7 @@ public class MetricsMetadata {
 
     public static Metadata getMetadata(Object origin, String name, String unit, String description, String displayName, MetricType type, boolean reusable, String... tags) {
         Metadata metadata = new OriginTrackedMetadata(origin, name, type);
+/*
         if (!unit.isEmpty()) {
             metadata.setUnit(unit);
         }
@@ -72,6 +73,7 @@ public class MetricsMetadata {
                 metadata.addTags(tag);
             }
         }
+*/
         return metadata;
     }
 

@@ -1,0 +1,5 @@
+io.smallrye.metrics.exporters.JsonExporter
+io.smallrye.metrics.exporters.JsonMetadataExporter
+io.smallrye.metrics.exporters.PrometheusExporter
+io.smallrye.metrics.exporters.DummyExporter
+

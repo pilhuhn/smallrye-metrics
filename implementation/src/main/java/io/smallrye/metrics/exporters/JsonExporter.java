@@ -28,6 +28,7 @@ import org.eclipse.microprofile.metrics.Metered;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Snapshot;
+import org.eclipse.microprofile.metrics.spi.MetricExporter;
 import org.jboss.logging.Logger;
 
 import java.util.HashMap;
@@ -37,7 +38,7 @@ import java.util.Map;
 /**
  * @author hrupp
  */
-public class JsonExporter implements Exporter {
+public class JsonExporter implements MetricExporter {
 
     private static final Logger log = Logger.getLogger("io.smallrye.metrics");
 
@@ -45,16 +46,36 @@ public class JsonExporter implements Exporter {
     private static final String LF = "\n";
 
     @Override
-    public StringBuffer exportOneScope(MetricRegistry.Type scope) {
+    public int getPriority() {
+        return 1;
+    }
 
-        StringBuffer sb = new StringBuffer();
+    @Override
+    public String getMediaType() {
+        return "application/json";
+    }
+
+    @Override
+    public HttpMethod getMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public void setRegistries(Map<MetricRegistry.Type, MetricRegistry> registryMap) {
+        // TODO: Customise this generated block
+    }
+
+    @Override
+    public String exportOneScope(MetricRegistry.Type scope) {
+
+        StringBuilder sb = new StringBuilder();
 
         getMetricsForAScope(sb, scope);
 
-        return sb;
+        return sb.toString();
     }
 
-    private void getMetricsForAScope(StringBuffer sb, MetricRegistry.Type scope) {
+    private void getMetricsForAScope(StringBuilder sb, MetricRegistry.Type scope) {
 
         MetricRegistry registry = MetricRegistries.get(scope);
         Map<String, Metric> metricMap = registry.getMetrics();
@@ -67,7 +88,7 @@ public class JsonExporter implements Exporter {
         sb.append("}");
     }
 
-    private void writeMetricsForMap(StringBuffer sb, Map<String, Metric> metricMap, Map<String, Metadata> metadataMap) {
+    private void writeMetricsForMap(StringBuilder sb, Map<String, Metric> metricMap, Map<String, Metadata> metadataMap) {
 
         for (Iterator<Map.Entry<String, Metric>> iterator = metricMap.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, Metric> entry = iterator.next();
@@ -95,7 +116,7 @@ public class JsonExporter implements Exporter {
                 case TIMER:
                     TimerImpl timer = (TimerImpl) value;
                     writeStartLine(sb, key);
-                    writeTimerValues(sb, timer, metadata.getUnit());
+                    writeTimerValues(sb, timer, metadata.getUnit().get());
                     writeEndLine(sb);
                     break;
                 case HISTOGRAM:
@@ -116,15 +137,15 @@ public class JsonExporter implements Exporter {
         }
     }
 
-    private void writeEndLine(StringBuffer sb) {
+    private void writeEndLine(StringBuilder sb) {
         sb.append("  }");
     }
 
-    private void writeStartLine(StringBuffer sb, String key) {
+    private void writeStartLine(StringBuilder sb, String key) {
         sb.append("  ").append('"').append(key).append('"').append(" : ").append("{\n");
     }
 
-    private void writeMeterValues(StringBuffer sb, Metered meter) {
+    private void writeMeterValues(StringBuilder sb, Metered meter) {
         sb.append("    \"count\": ").append(meter.getCount()).append(COMMA_LF);
         sb.append("    \"meanRate\": ").append(meter.getMeanRate()).append(COMMA_LF);
         sb.append("    \"oneMinRate\": ").append(meter.getOneMinuteRate()).append(COMMA_LF);
@@ -132,7 +153,7 @@ public class JsonExporter implements Exporter {
         sb.append("    \"fifteenMinRate\": ").append(meter.getFifteenMinuteRate()).append(LF);
     }
 
-    private void writeTimerValues(StringBuffer sb, TimerImpl timer, String unit) {
+    private void writeTimerValues(StringBuilder sb, TimerImpl timer, String unit) {
         writeSnapshotValues(sb, timer.getSnapshot(), unit);
         // Backup and write COMMA_LF
         sb.setLength(sb.length() - 1);
@@ -140,7 +161,7 @@ public class JsonExporter implements Exporter {
         writeMeterValues(sb, timer.getMeter());
     }
 
-    private void writeSnapshotValues(StringBuffer sb, Snapshot snapshot) {
+    private void writeSnapshotValues(StringBuilder sb, Snapshot snapshot) {
         sb.append("    \"p50\": ").append(snapshot.getMedian()).append(COMMA_LF);
         sb.append("    \"p75\": ").append(snapshot.get75thPercentile()).append(COMMA_LF);
         sb.append("    \"p95\": ").append(snapshot.get95thPercentile()).append(COMMA_LF);
@@ -155,7 +176,7 @@ public class JsonExporter implements Exporter {
 
     }
 
-    private void writeSnapshotValues(StringBuffer sb, Snapshot snapshot, String unit) {
+    private void writeSnapshotValues(StringBuilder sb, Snapshot snapshot, String unit) {
         sb.append("    \"p50\": ").append(toBase(snapshot.getMedian(), unit)).append(COMMA_LF);
         sb.append("    \"p75\": ").append(toBase(snapshot.get75thPercentile(), unit)).append(COMMA_LF);
         sb.append("    \"p95\": ").append(toBase(snapshot.get95thPercentile(), unit)).append(COMMA_LF);
@@ -192,8 +213,8 @@ public class JsonExporter implements Exporter {
     }
 
     @Override
-    public StringBuffer exportAllScopes() {
-        StringBuffer sb = new StringBuffer();
+    public String exportAllScopes() {
+        StringBuilder sb = new StringBuilder();
         sb.append("{");
 
         boolean first = true;
@@ -211,11 +232,11 @@ public class JsonExporter implements Exporter {
         }
 
         sb.append("}");
-        return sb;
+        return sb.toString();
     }
 
     @Override
-    public StringBuffer exportOneMetric(MetricRegistry.Type scope, String metricName) {
+    public String exportOneMetric(MetricRegistry.Type scope, String metricName) {
         MetricRegistry registry = MetricRegistries.get(scope);
         Map<String, Metric> metricMap = registry.getMetrics();
         Map<String, Metadata> metadataMap = registry.getMetadata();
@@ -226,17 +247,13 @@ public class JsonExporter implements Exporter {
         Map<String, Metric> outMap = new HashMap<>(1);
         outMap.put(metricName, m);
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("{");
         writeMetricsForMap(sb, outMap, metadataMap);
         sb.append("}");
         sb.append(JsonExporter.LF);
 
-        return sb;
+        return sb.toString();
     }
 
-    @Override
-    public String getContentType() {
-        return "application/json";
-    }
 }

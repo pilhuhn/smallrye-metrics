@@ -15,6 +15,7 @@
  */
 package io.smallrye.metrics.testsuite;
 
+import io.smallrye.metrics.setup.ExporterLoader;
 import io.smallrye.metrics.setup.JmxRegistrar;
 
 import javax.enterprise.context.ApplicationScoped;

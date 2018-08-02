@@ -16,6 +16,8 @@
  */
 package io.smallrye.metrics;
 
+import java.util.Collections;
+import java.util.HashMap;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.annotation.RegistryType;
 
@@ -61,6 +63,10 @@ public class MetricRegistries {
     @PreDestroy
     public void cleanUp() {
         registries.clear();
+    }
+
+    public static Map<MetricRegistry.Type, MetricRegistry> asMap() {
+        return Collections.unmodifiableMap(registries);
     }
 
     private static final Map<MetricRegistry.Type, MetricRegistry> registries = new ConcurrentHashMap<>();

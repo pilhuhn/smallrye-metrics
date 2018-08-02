@@ -17,6 +17,7 @@
 
 package io.smallrye.metrics.exporters;
 
+import java.util.Optional;
 import org.eclipse.microprofile.metrics.MetricUnits;
 
 /**
@@ -29,7 +30,13 @@ public class PrometheusUnit {
     }
 
 
-    public static String getBaseUnitAsPrometheusString(String unit) {
+    public static String getBaseUnitAsPrometheusString(Optional<String> optUnit) {
+
+        if (!optUnit.isPresent()) {
+            return "NONE";
+        }
+
+        String unit = optUnit.get();
 
         String out;
         switch (unit) {

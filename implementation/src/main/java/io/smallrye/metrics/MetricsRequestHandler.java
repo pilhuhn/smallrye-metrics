@@ -16,10 +16,8 @@
  */
 package io.smallrye.metrics;
 
-import io.smallrye.metrics.exporters.Exporter;
-import io.smallrye.metrics.exporters.JsonExporter;
-import io.smallrye.metrics.exporters.JsonMetadataExporter;
-import io.smallrye.metrics.exporters.PrometheusExporter;
+import io.smallrye.metrics.setup.ExporterLoader;
+import io.smallrye.metrics.setup.TypeMethod;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
@@ -29,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.eclipse.microprofile.metrics.spi.MetricExporter;
 
 /**
  * @author Michal Szynkiewicz, michal.l.szynkiewicz@gmail.com
@@ -39,6 +38,8 @@ import java.util.stream.Stream;
 public class MetricsRequestHandler {
 
     private static final Map<String, String> corsHeaders;
+    private static final String TEXT_PLAIN = "text/plain";
+    private static Map<TypeMethod, MetricExporter> exporters;
 
     static {
         corsHeaders = new HashMap<>();
@@ -48,7 +49,7 @@ public class MetricsRequestHandler {
         corsHeaders.put("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
     }
 
-    /**
+  /**
      *
      * @param requestPath e.g. request.getRequestURI for an HttpServlet
      * @param method http method (GET, POST, etc)
@@ -63,9 +64,17 @@ public class MetricsRequestHandler {
                               String method,
                               Stream<String> acceptHeaders,
                               Responder responder) throws IOException {
-        Exporter exporter = obtainExporter(method, acceptHeaders);
+
+        String ah = TEXT_PLAIN;
+
+        if (acceptHeaders != null) {
+            // Get media type from request
+            ah = acceptHeaders.findFirst().orElse(null);
+        }
+        MetricExporter exporter = obtainExporter(method, ah);
         if (exporter == null) {
-            responder.respondWith(406, "No exporter found for method " + method + " and media type", Collections.emptyMap());
+            responder.respondWith(406, "No exporter found for method " + method + " and media type '" +
+                ah +"'\n", Collections.emptyMap());
             return;
         }
 
@@ -77,10 +86,10 @@ public class MetricsRequestHandler {
             scopePath = scopePath.substring(0, scopePath.length() - 1);
         }
 
-        StringBuffer sb;
+        String payload;
         if (scopePath.isEmpty()) {
             // All metrics
-            sb = exporter.exportAllScopes();
+            payload = exporter.exportAllScopes();
 
         } else if (scopePath.contains("/")) {
             // One metric in a scope
@@ -97,7 +106,7 @@ public class MetricsRequestHandler {
             Map<String, Metric> metricValuesMap = registry.getMetrics();
 
             if (metricValuesMap.containsKey(attribute)) {
-                sb = exporter.exportOneMetric(scope, attribute);
+                payload = exporter.exportOneMetric(scope, attribute);
             } else {
                 responder.respondWith( 404, "Metric " + scopePath + " not found", Collections.emptyMap());
                 return;
@@ -116,15 +125,15 @@ public class MetricsRequestHandler {
                 responder.respondWith( 204, "No data in scope " + scopePath, Collections.emptyMap());
             }
 
-            sb = exporter.exportOneScope(scope);
+            payload = exporter.exportOneScope(scope);
         }
 
         Map<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", exporter.getContentType());
+        headers.put("Content-Type", exporter.getMediaType());
         headers.put("Access-Control-Max-Age", "1209600");
         headers.putAll(corsHeaders);
 
-        responder.respondWith(200, sb.toString(), headers);
+        responder.respondWith(200, payload, headers);
 
     }
 
@@ -144,40 +153,29 @@ public class MetricsRequestHandler {
      * Determine which exporter we want.
      *
      * @param method http method (GET, POST, etc)
-     * @param acceptHeaders accepted content types
+     * @param contentType requested content type
      *
      * @return An exporter instance or null in case no matching exporter existed.
      */
-    private Exporter obtainExporter(String method, Stream<String> acceptHeaders) {
-        Exporter exporter;
+    private MetricExporter obtainExporter(String method, String contentType) {
 
-        if (acceptHeaders == null) {
-            if (method.equals("GET")) {
-                exporter = new PrometheusExporter();
-            } else {
-                return null;
-            }
-        } else {
-            // Header can look like "application/json, text/plain, */*"
-            if (acceptHeaders.findFirst().map(e -> e.startsWith("application/json")).orElse(false)) {
+        // TODO move this to an earlier point in the startup phase
+        if (exporters == null) {
+            exporters = new HashMap<>();
+            ExporterLoader loader = new ExporterLoader();
+            loader.load(exporters);
+        }
 
+        MetricExporter exporter;
 
-                if (method.equals("GET")) {
-                    exporter = new JsonExporter();
-                } else if (method.equals("OPTIONS")) {
-                    exporter = new JsonMetadataExporter();
-                } else {
-                    return null;
-                }
-            } else {
-                // This is the fallback, but only for GET, as Prometheus does not support OPTIONS
-                if (method.equals("GET")) {
-                    exporter = new PrometheusExporter();
-                } else {
-                    return null;
-                }
-            }
-        };
+        if (contentType != null && contentType.equals("*/*")) {
+            contentType = TEXT_PLAIN;
+        }
+
+        // Header can look like "application/json, text/plain, */*"
+        TypeMethod tm = new TypeMethod(contentType, MetricExporter.HttpMethod.valueOf(method));
+        System.err.println("Requesting " + tm); // TODO remove
+        exporter = exporters.get(tm);
         return exporter;
     }
 
