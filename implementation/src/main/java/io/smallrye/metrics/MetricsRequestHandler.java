@@ -16,7 +16,6 @@
  */
 package io.smallrye.metrics;
 
-import io.smallrye.metrics.setup.ExporterLoader;
 import io.smallrye.metrics.setup.TypeMethod;
 import org.eclipse.microprofile.metrics.Metric;
 import org.eclipse.microprofile.metrics.MetricRegistry;
@@ -39,7 +38,6 @@ public class MetricsRequestHandler {
 
     private static final Map<String, String> corsHeaders;
     private static final String TEXT_PLAIN = "text/plain";
-    private static Map<TypeMethod, MetricExporter> exporters;
 
     static {
         corsHeaders = new HashMap<>();
@@ -159,13 +157,6 @@ public class MetricsRequestHandler {
      */
     private MetricExporter obtainExporter(String method, String contentType) {
 
-        // TODO move this to an earlier point in the startup phase
-        if (exporters == null) {
-            exporters = new HashMap<>();
-            ExporterLoader loader = new ExporterLoader();
-            loader.load(exporters);
-        }
-
         MetricExporter exporter;
 
         if (contentType != null && contentType.equals("*/*")) {
@@ -175,7 +166,7 @@ public class MetricsRequestHandler {
         // Header can look like "application/json, text/plain, */*"
         TypeMethod tm = new TypeMethod(contentType, MetricExporter.HttpMethod.valueOf(method));
         System.err.println("Requesting " + tm); // TODO remove
-        exporter = exporters.get(tm);
+        exporter = MetricExporters.getInstance().get(tm);
         return exporter;
     }
 

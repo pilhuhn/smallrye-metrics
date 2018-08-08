@@ -17,6 +17,7 @@
  */
 package io.smallrye.metrics.setup;
 
+import io.smallrye.metrics.MetricExporters;
 import io.smallrye.metrics.MetricProducer;
 import io.smallrye.metrics.MetricRegistries;
 import io.smallrye.metrics.MetricsRequestHandler;
@@ -34,6 +35,7 @@ import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Gauge;
 import org.eclipse.microprofile.metrics.annotation.Metered;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.eclipse.microprofile.metrics.spi.MetricExporter;
 import org.jboss.logging.Logger;
 
 import javax.enterprise.event.Observes;
@@ -80,6 +82,11 @@ public class MetricCdiInjectionExtension implements Extension {
     public MetricCdiInjectionExtension() {
         log.debug("MetricCdiInjectionExtension");
         metricsInterfaces = new ArrayList<>();
+
+        ExporterLoader loader = new ExporterLoader();
+        Map<TypeMethod, MetricExporter> map = loader.load();
+        MetricExporters.getInstance().addAll(map);
+
     }
 
     private void addInterceptorBindings(@Observes BeforeBeanDiscovery bbd, BeanManager manager) {

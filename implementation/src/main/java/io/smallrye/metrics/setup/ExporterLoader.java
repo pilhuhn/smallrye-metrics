@@ -17,6 +17,7 @@
 package io.smallrye.metrics.setup;
 
 import io.smallrye.metrics.MetricRegistries;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.eclipse.microprofile.metrics.spi.MetricExporter;
@@ -30,14 +31,16 @@ import org.jboss.logging.Logger;
  * file according to the {{@link ServiceLoader}} interface
  * @author hrupp
  */
-public class ExporterLoader {
+class ExporterLoader {
 
   private static final Logger log = Logger.getLogger(ExporterLoader.class);
 
-  public void load(Map<TypeMethod, MetricExporter> exporters) {
+  Map<TypeMethod, MetricExporter> load() {
     ClassLoader loader;
     loader = getClass().getClassLoader();
     ServiceLoader<MetricExporter> serviceLoader = ServiceLoader.load(MetricExporter.class, loader);
+
+    Map<TypeMethod, MetricExporter> exporters = new HashMap<>();
 
     for (MetricExporter exporter : serviceLoader) {
       boolean exists = false;
@@ -59,6 +62,7 @@ public class ExporterLoader {
                   exporter.getPriority(), key);
       }
     }
+    return exporters;
   }
 
 }
