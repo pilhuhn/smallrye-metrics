@@ -307,7 +307,7 @@ public class PrometheusExporter implements Exporter {
 
     private void writeHelpLine(StringBuffer sb, MetricRegistry.Type scope, String key, Metadata md, String suffix) {
         // Only write this line if we actually have a description in metadata
-        if (writeHelpLine && md.getDescription().isPresent()) {
+        if (writeHelpLine && !md.getDescription().orElse("").isEmpty()) {
             sb.append("# HELP ");
             getNameWithScopeAndSuffix(sb, scope, key, suffix);
             sb.append(md.getDescription().get());
