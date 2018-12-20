@@ -25,6 +25,7 @@ import java.util.Map;
 import org.eclipse.microprofile.metrics.Metadata;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.MetricType;
+import org.eclipse.microprofile.metrics.MetricUnits;
 import org.eclipse.microprofile.metrics.annotation.ConcurrentGauge;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Metered;
@@ -48,7 +49,7 @@ public class MetricsMetadata {
         MetricResolver.Of<ConcurrentGauge> concurrentGauge = resolver.concurrentGauge(bean, element);
         if (concurrentGauge.isPresent()) {
             ConcurrentGauge t = concurrentGauge.metricAnnotation();
-            Metadata metadata = getMetadata(t, concurrentGauge.metricName(), t.unit(), t.description(), t.displayName(), MetricType.CONCURRENT_GAUGE, t.reusable(), t.tags());
+            Metadata metadata = getMetadata(t, concurrentGauge.metricName(), MetricUnits.NONE, t.description(), t.displayName(), MetricType.CONCURRENT_GAUGE, t.reusable(), t.tags());
             registry.concurrentGauge(metadata);
         }
         MetricResolver.Of<Metered> metered = resolver.metered(bean, element);
